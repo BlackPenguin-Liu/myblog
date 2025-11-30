@@ -1,8 +1,8 @@
 ---
-title: A static site based on dumi
+title: BlackPenguin个人博客
 hero:
-  title: Site
-  description: My Blog
+  title: Black Penguin
+  description: 保持好奇和热烈的心
   actions:
     - text: Hello
       link: /
