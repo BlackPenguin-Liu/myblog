@@ -1,6 +1,7 @@
 # myblog
 
 A static site base on [dumi](https://d.umijs.org).
+URL: https://blackpenguin-liu.github.io/myblog
 
 ## Development
 
