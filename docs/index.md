@@ -18,6 +18,8 @@ features:
   - title: '!'
     emoji: 🚀
     description: Put ! description here
+
+sidebar: true
 ---
 
 myblog
