@@ -1,0 +1,66 @@
+---
+group: 
+    title: Android
+    order: 1
+---
+
+# RxJava
+[讲解文章](https://www.jianshu.com/p/464fa025229e)
+用于处理用户事件流的组合、处理事件流的超时和异常、结束时的清理操作。可以避免‘回调地狱’，以及自主维护超时、异常的情况。
+
+* Observable上游，被观察者
+* Observer是下游，是观察者
+* subscribe连接两者
+* subscribeOn(Schedulers.io()) 上游（被观察者）在哪个线程，有多个时只有第一个有效
+* observeOn(Schedulers.newThread()) 下游（观察者）在哪个线程，有多个时都生效，即每调用一次`observeOn()`就会切换一次线程
+* ObservableEmitter，发出事件。`onNext(T value)` `onError(Throwable error)` `onComplete()`
+* Disposable，结束上下游的连接
+
+`observable.subscibe(observer);`
+```java
+// 可使用lambda简化
+// Observable.create((ObservableOnSubscribe<Integer>) emitter -> {
+//    emitter.onNext(1);
+//    emitter.onNext(2);
+//    emitter.onNext(3);
+//    emitter.onComplete();
+//  }
+// );
+Observable.create(new ObservableOnSubscribe<Integer>() {
+  @Override
+  public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+    emitter.onNext(1);
+    emitter.onNext(2);
+    emitter.onNext(3);
+    emitter.onComplete();
+  }
+}).subscribe(new Observer<Integer>() {
+    @Override
+    public void onSubscribe(Disposable d) {
+        Log.d(TAG, "subscribe");
+    }
+
+    @Override
+    public void onNext(Integer value) {
+        Log.d(TAG, "" + value);
+    }
+
+    @Override
+    public void onError(Throwable e) {
+        Log.d(TAG, "error");
+    }
+
+    @Override
+    public void onComplete() {
+        Log.d(TAG, "complete");
+    }
+});
+```
+
+
+* Schedulers.io() 代表io操作的线程, 通常用于网络,读写文件等io密集型的操作
+* Schedulers.computation() 代表CPU计算密集型的操作, 例如需要大量计算的操作
+* Schedulers.newThread() 代表一个常规的新线程
+* AndroidSchedulers.mainThread() 代表Android的主线程
+
+
