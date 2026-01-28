@@ -63,4 +63,15 @@ Observable.create(new ObservableOnSubscribe<Integer>() {
 * Schedulers.newThread() 代表一个常规的新线程
 * AndroidSchedulers.mainThread() 代表Android的主线程
 
+.flatMap/.concatMap
+* .flatMap：不保证数据，并行处理（多个Observable可同时处理，所以有可能乱序，处理速度快的Observable先返回数据）
+* .concatMap：保持顺序，串行处理（前一个Observable结束才执行下一个）
+```
+Observable.fromIterable(uriList)
+    .concatMap(uri -> processUri(uri)) // 按顺序处理
+
+Observable.fromIterable(uriList)
+    .flatMap(uri -> processUri(uri)) // 并行处理
+```
+
 
