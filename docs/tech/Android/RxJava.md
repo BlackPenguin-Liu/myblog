@@ -14,7 +14,15 @@ group:
 * subscribeOn(Schedulers.io()) 上游（被观察者）在哪个线程，有多个时只有第一个有效
 * observeOn(Schedulers.newThread()) 下游（观察者）在哪个线程，有多个时都生效，即每调用一次`observeOn()`就会切换一次线程
 * ObservableEmitter，发出事件。`onNext(T value)` `onError(Throwable error)` `onComplete()`
+* onComplete结束整个流，早退
+* onNext 下一个链式被调用
+* onError 以异常结束整个流，表示某个环节有异常
+* doOnNext
 * Disposable，结束上下游的连接
+
+用于监听Observable生命周期的回调
+* doOnSubscribe 在订阅时立即执行
+* doOnNext 在 Observer 收到每个数据之前执行回调
 
 `observable.subscibe(observer);`
 ```java
