@@ -143,6 +143,7 @@ public class IcmpCheck implements Runnable, Closeable {
             // Setting SNDTIMEO is purely for defensive purposes.
             Os.setsockoptTimeval(mFileDescriptor,
                     OsConstants.SOL_SOCKET, OsConstants.SO_SNDTIMEO, StructTimeval.fromMillis(writeTimeout));
+//单次read的超时时间
             Os.setsockoptTimeval(mFileDescriptor,
                     OsConstants.SOL_SOCKET, OsConstants.SO_RCVTIMEO, StructTimeval.fromMillis(readTimeout));
         }
@@ -175,6 +176,9 @@ public class IcmpCheck implements Runnable, Closeable {
     private void checkEcho(int sequence) {
         long startTime = SystemClock.elapsedRealtime();
         boolean received = false;
+// 可能多次循环：1.主机可能发送多个Reply，可能序列号不对，需要验证icmp序列号；2 网络慢或无响应。
+// 单次循环read的超时时间为TIMEOUT_RECV，可以防止read永久阻塞。整体循环的超时时间为mTimeout。可以防止无限制的一直等待。
+// 所以需要两个时间
         while (SystemClock.elapsedRealtime() - startTime < mTimeout) {
             try {
                 ByteBuffer reply = ByteBuffer.allocate(PACKET_BUFSIZE);
@@ -232,6 +236,46 @@ public class IcmpCheck implements Runnable, Closeable {
 
 ```
 
+## TIMEOUT_SEND send的超时时间含义：
+┌──────────────┐
+│ 调用 write() │
+└──────────────┘
+       ↓
+┌─────────────────────────────────────────┐
+│ 尝试发送 ICMP 包到网络                   │
+│                                         │
+│ ┌──────────────────────────────────┐   │
+│ │ 0ms ──────────── 50ms ──── 100ms │   │
+│ │ 开始        ...   ...    超时！  │   │
+│ └──────────────────────────────────┘   │
+│                                         │
+│ 如果 100ms 内还没发送出去，抛出异常     │
+└─────────────────────────────────────────┘
+何时触发超时：
+网络非常拥堵
+Socket 缓冲区满
+系统资源不足
 
 
+
+## TIMEOUT_RECV read超时时间的含义
+┌──────────────┐
+│ 调用 read()  │
+└──────────────┘
+       ↓
+┌─────────────────────────────────────────┐
+│ 等待接收 ICMP Echo Reply                │
+│                                         │
+│ ┌──────────────────────────────────┐   │
+│ │ 0ms ──── 150ms ──── 300ms        │   │
+│ │ 开始 收到回复！   或者    超时！  │   │
+│ └──────────────────────────────────┘   │
+│                                         │
+│ 如果 300ms 内没收到，抛出异常           │
+└─────────────────────────────────────────┘
+何时触发超时：
+目标主机无响应（宕机、离线）
+网络连接中断
+丢包率过高
+路由器故障
 
