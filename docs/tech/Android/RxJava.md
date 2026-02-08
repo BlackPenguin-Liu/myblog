@@ -39,7 +39,7 @@ group:
 ## 2 使用方式
 
 `observable.subscibe(observer);`
-```java
+```js
 // 可使用lambda简化
 // Observable.create((ObservableOnSubscribe<Integer>) emitter -> {
 //    emitter.onNext(1);

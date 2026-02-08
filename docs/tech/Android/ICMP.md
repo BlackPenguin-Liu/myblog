@@ -39,77 +39,24 @@ ICMP 全称 Internet Control Message Protocol（互联网控制消息协议）
 
 
 ### 2.1 Ping 工作流程
-```mermaid
-sequenceDiagram
-    participant A as 用户
-    participant B as 系统
-    participant C as 数据库
-    
-    A->>B: 登录请求
-    B->>C: 验证用户信息
-    C-->>B: 返回验证结果
-    B-->>A: 登录成功/失败
-```
+| 序号 |  步骤 | 详解 |
+|------|-----|-----|
+| 1 |  构造 ICMP Echo Request 包 | Type: 8 (IPv4) or 128 (IPv6)；Sequence Number: 序列号；Payload: 可选数据 |
+| 2 |  通过 Socket 发送 ICMP 包 | `Os.write(fileDescriptor, packet)` |
+|3| 目标主机收到请求|自动生成 Echo Reply 响应；Type: 0 (IPv4) or 129 (IPv6)|
+|4|原主机接收响应|`Os.read(fileDescriptor, reply)`，验证序列号和内容|
+|5|计算往返时间 (RTT)|RTT = 响应时间 - 发送时间
 
-┌─────────────────────────────────────────┐
-│ 1. 构造 ICMP Echo Request 包             │
-│    Type: 8 (IPv4) or 128 (IPv6)         │
-│    Sequence Number: 序列号               │
-│    Payload: 可选数据                      │
-└─────────────────────────────────────────┘
-                 ↓
-┌─────────────────────────────────────────┐
-│ 2. 通过 Socket 发送 ICMP 包              │
-│    Os.write(fileDescriptor, packet)     │
-└─────────────────────────────────────────┘
-                 ↓
-┌─────────────────────────────────────────┐
-│ 3. 目标主机收到请求                      │
-│    自动生成 Echo Reply 响应               │
-│    Type: 0 (IPv4) or 129 (IPv6)         │
-└─────────────────────────────────────────┘
-                 ↓
-┌─────────────────────────────────────────┐
-│ 4. 原主机接收响应                        │
-│    Os.read(fileDescriptor, reply)       │
-│    验证序列号和内容                      │
-└─────────────────────────────────────────┘
-                 ↓
-┌─────────────────────────────────────────┐
-│ 5. 计算往返时间 (RTT)                   │
-│    RTT = 响应时间 - 发送时间             │
-└─────────────────────────────────────────┘
+### 2.2 使用ICMP 实现 ping 的优点
+* 轻量级：ICMP 包很小（通常 8 字节起），网络开销小
+* 快速反应：没有连接建立过程，立即返回结果
+* 网络诊断：可以检测网络连接状态、延迟、丢包率
+* 跨平台：几乎所有网络设备都支持 ICMP
+* 不依赖应用层：即使目标主机没有运行特定服务也能响应
 
-## ICMP包结构
-┌─────────────────────────────────────┐
-│ Type (8 bits)                       │  0: Echo Reply, 8: Echo Request
-├─────────────────────────────────────┤
-│ Code (8 bits)                       │  通常为 0
-├─────────────────────────────────────┤
-│ Checksum (16 bits)                  │  用于错误检测
-├─────────────────────────────────────┤
-│ Rest of Header (32 bits)            │  Identifier, Sequence Number
-├─────────────────────────────────────┤
-│ Data (可选)                          │  Payload
-└─────────────────────────────────────┘
+### 2.3 Ping 代码
 
-
-## 使用ICMP 实现 ping 的优点
-轻量级：ICMP 包很小（通常 8 字节起），网络开销小
-快速反应：没有连接建立过程，立即返回结果
-网络诊断：可以检测网络连接状态、延迟、丢包率
-跨平台：几乎所有网络设备都支持 ICMP
-不依赖应用层：即使目标主机没有运行特定服务也能响应
-
-
-## IPv4 vs IPv6 的 ICMP 区别
-* IPv4协议：请求类型：8，回复类型：0
-* IPv6协议：128，129
-
-
-
-## ping代码
-```java
+```js
 public class IcmpCheck implements Runnable, Closeable {
     public static final int ICMPV4_ECHO_REQUEST_TYPE = 8;
     public static final int ICMPV6_ECHO_REQUEST_TYPE = 128;
@@ -119,7 +66,6 @@ public class IcmpCheck implements Runnable, Closeable {
 
     protected final InetAddress mTarget;
     protected final int mAddressFamily;
-    protected final VpnPingMeasurement mMeasurement;
     protected FileDescriptor mFileDescriptor;
     protected SocketAddress mSocketAddress;
 
@@ -128,7 +74,7 @@ public class IcmpCheck implements Runnable, Closeable {
     private final long mTimeout;
     private final int mPingCount;
 
-    protected IcmpCheck(InetAddress target, VpnPingMeasurement long timeout, int pingCount) {
+    protected IcmpCheck(InetAddress target, long timeout, int pingCount) {
         if (target instanceof Inet6Address) {
             mTarget = target;
             mAddressFamily = OsConstants.AF_INET6;
@@ -160,6 +106,8 @@ public class IcmpCheck implements Runnable, Closeable {
         }
     }
 
+// writeTimeout可能：1. 网络非常拥堵；2. Socket 缓冲区满；3. 系统资源不足
+// readTimeout可能：1. 目标主机无响应（宕机、离线）；2. 网络连接中断；3. 丢包率过高；4. 路由器故障
     protected void setupSocket(int protocol, long writeTimeout, long readTimeout)
             throws ErrnoException, IOException {
         mFileDescriptor = Os.socket(mAddressFamily, OsConstants.SOCK_DGRAM, protocol);
@@ -260,46 +208,17 @@ public class IcmpCheck implements Runnable, Closeable {
 
 ```
 
-## TIMEOUT_SEND send的超时时间含义：
-┌──────────────┐
-│ 调用 write() │
-└──────────────┘
-       ↓
-┌─────────────────────────────────────────┐
-│ 尝试发送 ICMP 包到网络                   │
-│                                         │
-│ ┌──────────────────────────────────┐   │
-│ │ 0ms ──────────── 50ms ──── 100ms │   │
-│ │ 开始        ...   ...    超时！  │   │
-│ └──────────────────────────────────┘   │
-│                                         │
-│ 如果 100ms 内还没发送出去，抛出异常     │
-└─────────────────────────────────────────┘
-何时触发超时：
-网络非常拥堵
-Socket 缓冲区满
-系统资源不足
+
+## 3 ICMP包结构
+|  内容 | 含义 |
+|-----|-----|
+| Type (8 bits) | 0: Echo Reply, 8: Echo Request|
+| Code (8 bits) | 细分类型，通常为 0 |
+| Checksum (16 bits) | 用于错误检测 |
+| Rest of Header (32 bits) | Identifier, Sequence Number |
+| Data (可选) | Payload|
 
 
 
-## TIMEOUT_RECV read超时时间的含义
-┌──────────────┐
-│ 调用 read()  │
-└──────────────┘
-       ↓
-┌─────────────────────────────────────────┐
-│ 等待接收 ICMP Echo Reply                │
-│                                         │
-│ ┌──────────────────────────────────┐   │
-│ │ 0ms ──── 150ms ──── 300ms        │   │
-│ │ 开始 收到回复！   或者    超时！  │   │
-│ └──────────────────────────────────┘   │
-│                                         │
-│ 如果 300ms 内没收到，抛出异常           │
-└─────────────────────────────────────────┘
-何时触发超时：
-目标主机无响应（宕机、离线）
-网络连接中断
-丢包率过高
-路由器故障
+
 

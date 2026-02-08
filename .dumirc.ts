@@ -13,10 +13,13 @@ export default defineConfig({
       { title: '学习笔记', path: '/tech' },
       { title: '项目列表', path: '/project' },
     ],
-
+    showLineNum: true,
+    socialLinks: {
+      github: 'https://github.com/BlackPenguin-Liu',
+    },
   },
   plugins: ['dumi-plugin-color-chunk'],
   theme: {
-    '@c-primary': '#6451AB',
+    '@c-primary': '#5476cc',
   },
 });
