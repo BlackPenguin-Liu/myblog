@@ -3,6 +3,10 @@ import { defineConfig } from 'dumi';
 export default defineConfig({
   base: '/myblog/',
   publicPath: '/myblog/',
+  resolve: {
+    docDirs: ['docs'],
+    codeBlockMode: 'passive',
+  },
   themeConfig: {
     name: '黑企鹅',
     navs: [
@@ -12,5 +16,7 @@ export default defineConfig({
 
   },
   plugins: ['dumi-plugin-color-chunk'],
-
+  theme: {
+    '@c-primary': '#6451AB',
+  },
 });

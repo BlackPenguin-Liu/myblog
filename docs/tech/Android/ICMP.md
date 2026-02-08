@@ -11,35 +11,51 @@ group:
 ICMP 全称 Internet Control Message Protocol（互联网控制消息协议）
 
 
-特性
-说明
+## 1 特性说明
 * OSI 层级：第 3 层（网络层），与 IP 协议同级
 * 功能：用于发送错误报告和诊断信息
 * 无连接：不建立连接，直接发送消息
 * 不可靠：没有错误恢复机制（best-effort）
 * 用途：网络诊断、错误报告、网络状态监测
 
-主要用途：
-1. Ping（Echo Request/Reply）
-最常见的 ICMP 应用，用来测试网络连接是否正常：
-发送端 ──→ ICMP Echo Request ──→ 目标主机
-发送端 ←── ICMP Echo Reply ←── 目标主机
-2. Traceroute（追踪路由）
-显示数据包从源到目标的路由路径：
-Host A → Router 1 → Router 2 → Router 3 → Host B
-3. 错误报告
-Destination Unreachable（目标不可达）
-Time Exceeded（超时）
-Parameter Problem（参数问题）
+## 2 主要用途
+1. Ping（Echo Request/Reply）：最常见的 ICMP 应用，用来测试网络连接是否正常：
+    
+    发送端 → ICMP Echo Request → 目标主机
+
+    发送端 ← ICMP Echo Reply ← 目标主机
+2. Traceroute（追踪路由）：通过发送带有递增 TTL（生存时间）值的 ICMP 包，显示数据包从源到目标的路由路径：
+
+    Host A → Router 1 → Router 2 → Router 3 → Host B
+
+3. 错误报告：当路由器或主机遇到问题时，发送 ICMP 错误消息通知源主机，例如：
+
+    目标不可达（Destination Unreachable）
+    
+    超时（Time Exceeded）
+    
+    参数问题（Parameter Problem）
 
 
 
-## Ping 工作流程
+### 2.1 Ping 工作流程
+```mermaid
+sequenceDiagram
+    participant A as 用户
+    participant B as 系统
+    participant C as 数据库
+    
+    A->>B: 登录请求
+    B->>C: 验证用户信息
+    C-->>B: 返回验证结果
+    B-->>A: 登录成功/失败
+```
+
 ┌─────────────────────────────────────────┐
 │ 1. 构造 ICMP Echo Request 包             │
 │    Type: 8 (IPv4) or 128 (IPv6)         │
 │    Sequence Number: 序列号               │
-│    Payload: 可选数据                     │
+│    Payload: 可选数据                      │
 └─────────────────────────────────────────┘
                  ↓
 ┌─────────────────────────────────────────┐
